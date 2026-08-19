@@ -1,0 +1,13 @@
+{
+  "name": "dsh-quick-restart",
+  "version": "0.1.0",
+  "description": "Quick restart command for dsh",
+  "type": "module",
+  "main": "index.js",
+  "files": ["index.js", "cordis.patch.yml", "README.md"],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
