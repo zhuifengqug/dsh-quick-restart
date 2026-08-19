@@ -21,6 +21,27 @@ const wait = () => {
 wait()
 `
 
+function isTrustedRequest(req) {
+  const host = req.headers?.host
+  if (typeof host !== 'string' || host === '') return false
+  let url
+  try {
+    url = new URL(`http://${host}`)
+  } catch {
+    return false
+  }
+  const hostname = url.hostname
+  if (hostname !== 'localhost' && hostname !== '[::1]' && !hostname.startsWith('127.')) return false
+  if (req.headers?.['sec-fetch-site'] === 'cross-site') return false
+  const origin = req.headers?.origin
+  if (origin === undefined) return true
+  try {
+    return new URL(origin).host === url.host
+  } catch {
+    return false
+  }
+}
+
 function spawnReplacement() {
   const entry = process.argv[1]
   if (entry === undefined) throw new Error('dsh restart: process entry point is unavailable')
@@ -31,6 +52,36 @@ function spawnReplacement() {
   relay.unref()
 }
 
+function requestRestart() {
+  spawnReplacement()
+  setTimeout(() => process.kill(process.pid, 'SIGTERM'), 50).unref()
+}
+
+function registerWebRoute(ctx) {
+  if (typeof ctx.inject !== 'function') return
+  ctx.inject(['webServer'], (scope) => {
+    scope.webServer.register({
+      name: 'dsh-quick-restart',
+      kind: 'exact',
+      path: '/dsh-quick-restart',
+      handler: (req, res) => {
+        const send = (status, body) => {
+          res.writeHead(status, { 'content-type': 'application/json' })
+          res.end(JSON.stringify(body))
+        }
+        if (!isTrustedRequest(req)) return send(403, { error: 'request refused: loopback same-origin only' })
+        if (req.method !== 'POST') return send(405, { error: 'method not allowed' })
+        try {
+          requestRestart()
+          return send(202, { restarting: true })
+        } catch (error) {
+          return send(500, { error: String(error?.message ?? error) })
+        }
+      },
+    })
+  })
+}
+
 export function apply(ctx) {
   ctx.commands.register({
     name: 'restart',
@@ -39,9 +90,9 @@ export function apply(ctx) {
     handler(invocation) {
       if (invocation.rawInput.trim().length > 0) return { kind: 'error', text: USAGE }
       if (invocation.signal.aborted) return { kind: 'error', text: 'Restart cancelled.' }
-      spawnReplacement()
-      setTimeout(() => process.kill(process.pid, 'SIGTERM'), 50).unref()
+      requestRestart()
       return { kind: 'success', text: 'Restarting dsh...' }
     },
   })
+  registerWebRoute(ctx)
 }
