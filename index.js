@@ -1,7 +1,16 @@
+/**
+ * dsh-quick-restart — host half.
+ *
+ * Registers POST /dsh-quick-restart to trigger restart, and GET /dsh-health
+ * as a liveness probe for the client status dot.
+ *
+ * The restart handler returns BEFORE the restart happens (1s delay), so the
+ * browser has time to render the "restarting" state before the page drops.
+ */
 import { spawn } from 'node:child_process'
 
 export const name = 'dsh-quick-restart'
-export const inject = ['commands']
+export const inject = ['webServer', 'commands']
 
 const USAGE = 'Usage: /restart (no arguments)'
 const RELAUNCH_SCRIPT = String.raw`
@@ -52,37 +61,63 @@ function spawnReplacement() {
   relay.unref()
 }
 
-function requestRestart() {
-  spawnReplacement()
-  setTimeout(() => process.kill(process.pid, 'SIGTERM'), 50).unref()
-}
-
-function registerWebRoute(ctx) {
-  if (typeof ctx.inject !== 'function') return
-  ctx.inject(['webServer'], (scope) => {
-    scope.webServer.register({
-      name: 'dsh-quick-restart',
-      kind: 'exact',
-      path: '/dsh-quick-restart',
-      handler: (req, res) => {
-        const send = (status, body) => {
-          res.writeHead(status, { 'content-type': 'application/json' })
-          res.end(JSON.stringify(body))
-        }
-        if (!isTrustedRequest(req)) return send(403, { error: 'request refused: loopback same-origin only' })
-        if (req.method !== 'POST') return send(405, { error: 'method not allowed' })
-        try {
-          requestRestart()
-          return send(202, { restarting: true })
-        } catch (error) {
-          return send(500, { error: String(error?.message ?? error) })
-        }
-      },
-    })
-  })
-}
-
 export function apply(ctx) {
+  let restarting = false
+
+  // Health check endpoint for client status dot
+  const disposeHealth = ctx.webServer.register({
+    kind: 'exact',
+    path: '/dsh-health',
+    handler: async (req, res) => {
+      res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' })
+      res.end(JSON.stringify({ ok: true, ts: Date.now() }))
+    }
+  })
+
+  // Restart endpoint
+  const disposeRoute = ctx.webServer.register({
+    kind: 'exact',
+    path: '/dsh-quick-restart',
+    handler: async (req, res) => {
+      if (req.method !== 'POST') {
+        res.writeHead(405, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, message: 'method not allowed' }))
+        return
+      }
+      if (!isTrustedRequest(req)) {
+        res.writeHead(403, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, message: 'request refused: loopback same-origin only' }))
+        return
+      }
+      if (restarting) {
+        res.writeHead(200, { 'content-type': 'application/json' })
+        res.end(JSON.stringify({ ok: false, message: '重启已在进行中，请稍候' }))
+        return
+      }
+      restarting = true
+
+      // Return response first, then restart after 1s delay
+      // This gives browser time to render "restarting" state
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end(JSON.stringify({ ok: true, message: '重启已触发，DSH 将断开约 15-20 秒，之后请刷新页面' }))
+
+      // Use native setTimeout (not ctx.effect) because webServer handler
+      // runs outside Cordis fiber lifecycle
+      setTimeout(() => {
+        try {
+          spawnReplacement()
+          setTimeout(() => {
+            try { process.kill(process.pid, 'SIGTERM') } catch {}
+          }, 50)
+        } catch (error) {
+          restarting = false
+          console.error('[dsh-quick-restart] restart failed:', error)
+        }
+      }, 1000)
+    }
+  })
+
+  // Slash command as fallback
   ctx.commands.register({
     name: 'restart',
     description: 'restart dsh with the current profile and options',
@@ -90,9 +125,11 @@ export function apply(ctx) {
     handler(invocation) {
       if (invocation.rawInput.trim().length > 0) return { kind: 'error', text: USAGE }
       if (invocation.signal.aborted) return { kind: 'error', text: 'Restart cancelled.' }
-      requestRestart()
+      spawnReplacement()
+      setTimeout(() => process.kill(process.pid, 'SIGTERM'), 50).unref()
       return { kind: 'success', text: 'Restarting dsh...' }
     },
   })
-  registerWebRoute(ctx)
+
+  return () => { disposeHealth(); disposeRoute() }
 }

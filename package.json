@@ -1,7 +1,7 @@
 {
   "name": "dsh-quick-restart",
-  "version": "0.1.0",
-  "description": "Quick restart command for dsh",
+  "version": "0.2.0",
+  "description": "One-click restart button for the DeepSeek Harness Web UI: a sidebar footer button that restarts the dsh web process (single click, no confirmation step). / DSH Web 界面一键重启按钮：侧边栏底部按钮，单击即重启 dsh web 进程。",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -10,14 +10,18 @@
     "./package.json": "./package.json"
   },
   "files": ["index.js", "client.js", "cordis.patch.yml", "README.md"],
+  "keywords": ["deepseek", "harness", "dsh", "dsh-plugin", "web", "restart", "ui"],
+  "license": "MIT",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
     },
     "client": {
-      "inject": [],
-      "platform": "web",
-      "immediately": true
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-sidebar"
+      ],
+      "platform": "web"
     }
   }
 }
