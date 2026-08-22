@@ -26,6 +26,8 @@ window.__ModuleLoader__.load({
         var tag = document.createElement('style');
         tag.dataset.dshQuickRestartCss = '1';
         tag.textContent = [
+          '.dqr-action-wrap{display:block;flex:0 0 100%;width:100%;min-width:0}',
+          '.dqr-action-wrap--rail{display:flex;flex:0 0 auto;width:auto;justify-content:center}',
           '.dqr-restart{box-sizing:border-box;flex:none;align-items:center;width:100%;min-width:0;height:49px;margin:0;color:var(--dsw-alias-label-primary);cursor:pointer;background:transparent;border:none;border-radius:12px;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:14px;display:inline-flex;overflow:hidden;position:relative}',
           '.dqr-restart:hover{background:var(--dsw-alias-bg-layer-2)}',
           '.dqr-restart--armed{color:var(--dsw-alias-state-error-primary)}',
@@ -109,7 +111,7 @@ window.__ModuleLoader__.load({
               : health === 'down' ? ' dqr-dot--down'
               : ' dqr-dot--unknown');
 
-          return React.createElement('button', {
+          var button = React.createElement('button', {
             type: 'button',
             className: cls,
             onClick: click,
@@ -140,6 +142,9 @@ window.__ModuleLoader__.load({
               'aria-label': statusText
             })
           ]);
+          return React.createElement('div', {
+            className: 'dqr-action-wrap' + (wide ? '' : ' dqr-action-wrap--rail')
+          }, button);
         }));
         return () => disposeSlot();
       }, 'dsh-quick-restart: footer action');
