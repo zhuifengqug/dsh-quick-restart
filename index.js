@@ -51,10 +51,17 @@ function isTrustedRequest(req) {
   }
 }
 
+function relaunchArgs() {
+  const args = [...process.argv.slice(2)]
+  const isWeb = args[0] === 'web'
+  if (isWeb && !args.includes('--no-open')) args.push('--no-open')
+  return args
+}
+
 function spawnReplacement() {
   const entry = process.argv[1]
   if (entry === undefined) throw new Error('dsh restart: process entry point is unavailable')
-  const argv = [...process.execArgv, entry, ...process.argv.slice(2)]
+  const argv = [...process.execArgv, entry, ...relaunchArgs()]
   const relay = spawn(process.execPath, [
     '--eval', RELAUNCH_SCRIPT, String(process.pid), process.execPath, process.cwd(), JSON.stringify(argv),
   ], { detached: true, stdio: 'ignore', windowsHide: true })

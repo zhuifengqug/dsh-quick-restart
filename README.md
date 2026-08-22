@@ -37,7 +37,7 @@ Then restart dsh web once so the bundle layer loads.
 | Client | `client.js` | Registers the sidebar footer button (slot `sidebar.footer.action`); single click fetches `POST /dsh-quick-restart`; polls `GET /dsh-health` every 5s for the status dot. |
 | Bundle | `cordis.patch.yml` | The loader row that mounts both halves. |
 
-The host routes return before the restart happens (~1s host timer), giving the browser time to render the "restarting" state before the page drops.
+The host routes return before the restart happens (~1s host timer), giving the browser time to render the "restarting" state before the page drops. For Web launches, the replacement process adds `--no-open`, so the restart restores the server without opening a second browser or installed Web App window.
 
 ## Slash command fallback
 
