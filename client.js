@@ -26,18 +26,18 @@ window.__ModuleLoader__.load({
         var tag = document.createElement('style');
         tag.dataset.dshQuickRestartCss = '1';
         tag.textContent = [
-          '.dqr-restart{flex:none;align-items:center;width:100%;height:49px;color:var(--dsw-alias-label-primary);cursor:pointer;background:transparent;border:none;border-radius:12px;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:14px;display:inline-flex;overflow:hidden;position:relative}',
+          '.dqr-restart{box-sizing:border-box;flex:none;align-items:center;width:100%;min-width:0;height:49px;margin:0;color:var(--dsw-alias-label-primary);cursor:pointer;background:transparent;border:none;border-radius:12px;gap:8px;padding:0 8px 0 6px;font-family:inherit;font-size:14px;display:inline-flex;overflow:hidden;position:relative}',
           '.dqr-restart:hover{background:var(--dsw-alias-bg-layer-2)}',
           '.dqr-restart--armed{color:var(--dsw-alias-state-error-primary)}',
           '.dqr-restart--armed:hover{background:var(--dsw-alias-state-error-primary);color:#fff}',
-          '.dqr-restart--rail{width:36px;height:36px;border-radius:50%;justify-content:center;gap:0;padding:0}',
+          '.dqr-restart--rail{box-sizing:border-box;width:36px;min-width:36px;height:36px;border-radius:50%;justify-content:center;gap:0;padding:0}',
           '.dqr-restart__label{text-overflow:ellipsis;white-space:nowrap;min-width:0;overflow:hidden}',
           '.dqr-dot{flex:none;width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--dsw-alias-label-tertiary)}',
           '.dqr-dot--ok{background:#22c55e;box-shadow:0 0 4px rgba(34,197,94,.6)}',
           '.dqr-dot--down{background:#ef4444;box-shadow:0 0 4px rgba(239,68,68,.6)}',
           '.dqr-dot--unknown{background:var(--dsw-alias-label-tertiary)}',
           '.dqr-restart--rail .dqr-dot{position:absolute;top:2px;right:2px;width:7px;height:7px}',
-          '.dqr-restart__status{color:var(--dsw-alias-label-secondary);font-size:12px;line-height:16px;white-space:nowrap}'
+          '.dqr-restart__status{flex:none;max-width:7em;color:var(--dsw-alias-label-secondary);font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
         ].join('\n');
         document.head.appendChild(tag);
         return () => { tag.remove(); };
@@ -48,7 +48,7 @@ window.__ModuleLoader__.load({
         var disposeSlot = ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
           name: 'sidebar.footer.action',
           id: 'dsh-quick-restart',
-          order: -100,
+          order: 100,
           label: () => '重启 DSH'
         }, (props) => {
           var wide = props.wide;
